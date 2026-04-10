@@ -27,80 +27,61 @@ public class ClientSession {
         this.lastHeardFromEpochMs = System.currentTimeMillis();
     }
 
-
-
-
-    //getters and setters for client session stuff
-    public int getPlayerId(){
+    public int getPlayerId() {
         return playerId;
     }
 
-    public String getPlayerName(){
+    public String getPlayerName() {
         return playerName;
     }
 
-
-    public Socket getTcpSocket(){
+    public Socket getTcpSocket() {
         return tcpSocket;
     }
 
-    public void setTcpSocket(Socket tcpSocket){
+    public void setTcpSocket(Socket tcpSocket) {
         this.tcpSocket = tcpSocket;
     }
 
-
-
-
-    public ObjectOutputStream getOutputStream(){
+    public ObjectOutputStream getOutputStream() {
         return outputStream;
     }
 
-    public void setOutputStream(ObjectOutputStream outputStream){
+    public void setOutputStream(ObjectOutputStream outputStream) {
         this.outputStream = outputStream;
     }
 
-
-
-
-    public InetAddress getClientAddress(){
+    public InetAddress getClientAddress() {
         return clientAddress;
     }
 
-    public void setClientAddress(InetAddress clientAddress){
+    public void setClientAddress(InetAddress clientAddress) {
         this.clientAddress = clientAddress;
     }
-
-
 
     public int getClientUdpPort() {
         return clientUdpPort;
     }
 
-    public void setClientUdpPort(int clientUdpPort){
+    public void setClientUdpPort(int clientUdpPort) {
         this.clientUdpPort = clientUdpPort;
     }
-
-
 
     public boolean isConnected() {
         return connected.get();
     }
 
-    public void setConnected(boolean value){
+    public void setConnected(boolean value) {
         connected.set(value);
     }
 
-
-
-    public long getLastProcessedSequenceNumber(){
+    public long getLastProcessedSequenceNumber() {
         return lastProcessedSequenceNumber;
     }
 
     public void setLastProcessedSequenceNumber(long lastProcessedSequenceNumber) {
         this.lastProcessedSequenceNumber = lastProcessedSequenceNumber;
     }
-
-
 
     public boolean shouldAcceptSequence(long incomingSequence) {
         return incomingSequence > lastProcessedSequenceNumber;
@@ -128,19 +109,14 @@ public class ClientSession {
             if (outputStream != null) {
                 outputStream.close();
             }
-        } 
-        
-        catch (Exception ignored) {
+        } catch (Exception ignored) {
         }
 
-
-        
         try {
-            if (tcpSocket != null && !tcpSocket.isClosed()){
+            if (tcpSocket != null && !tcpSocket.isClosed()) {
                 tcpSocket.close();
             }
-        } 
-        catch (Exception ignored) {
+        } catch (Exception ignored) {
         }
     }
 }
