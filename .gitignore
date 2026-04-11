@@ -43,3 +43,6 @@ bin/
 
 ### Logs ###
 *.log
+
+### config files ###
+config/
