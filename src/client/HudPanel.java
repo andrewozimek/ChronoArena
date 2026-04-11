@@ -1,46 +1,135 @@
 package client;
 
+import common.Constants;
 import common.GameSnapshot;
 import common.PlayerState;
-
-import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import javax.swing.*;
 
 public class HudPanel extends JPanel {
 
     private final ClientState clientState;
 
+    // UI components
+    private final JLabel titleLabel = new JLabel("ChronoArena");
+    private final JLabel playerNameLabel = new JLabel("Player: -");
+    private final JLabel playerIdLabel = new JLabel("ID: -");
+    private final JProgressBar timeBar = new JProgressBar();
+    private final JLabel matchStatusLabel = new JLabel("Match: -");
+    private final DefaultListModel<String> scoreboardModel = new DefaultListModel<>();
+    private final JList<String> scoreboardList = new JList<>(scoreboardModel);
+    private final JTextArea serverNoticeArea = new JTextArea();
+
     public HudPanel(ClientState clientState) {
         this.clientState = clientState;
-        setPreferredSize(new Dimension(280, 700));
+        setPreferredSize(new Dimension(300, 700));
         setBackground(new Color(30, 30, 30));
         setForeground(Color.WHITE);
+        setLayout(new BorderLayout(8, 8));
+
+        buildUi();
+        startRefreshTimer();
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+    private void buildUi() {
+        // Title
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        Graphics2D g2 = (Graphics2D) g.create();
-        try {
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 20));
-            g2.drawString("ChronoArena", 20, 35);
+        add(titleLabel, BorderLayout.NORTH);
 
+        // center content
+        JPanel center = new JPanel();
+        center.setOpaque(false);
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+
+        JPanel info = new JPanel(new GridLayout(0, 1));
+        info.setOpaque(false);
+        playerNameLabel.setForeground(Color.WHITE);
+        playerIdLabel.setForeground(Color.WHITE);
+        matchStatusLabel.setForeground(Color.WHITE);
+        info.add(playerNameLabel);
+        info.add(playerIdLabel);
+        info.add(matchStatusLabel);
+        center.add(info);
+
+        center.add(Box.createVerticalStrut(8));
+
+        JLabel controlsLabel = new JLabel("Controls: Move W/A/S/D, Freeze: Space/F");
+        controlsLabel.setForeground(new Color(200, 200, 200));
+        controlsLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        center.add(controlsLabel);
+
+        center.add(Box.createVerticalStrut(12));
+
+        // time/progress
+        timeBar.setStringPainted(true);
+        timeBar.setMinimum(0);
+        timeBar.setMaximum(1);
+        timeBar.setValue(0);
+        timeBar.setPreferredSize(new Dimension(260, 20));
+        center.add(timeBar);
+
+        center.add(Box.createVerticalStrut(12));
+
+        JLabel scoreboardLabel = new JLabel("Scoreboard");
+        scoreboardLabel.setForeground(Color.WHITE);
+        scoreboardLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        center.add(scoreboardLabel);
+
+        scoreboardList.setForeground(Color.WHITE);
+        scoreboardList.setBackground(new Color(40, 40, 40));
+        scoreboardList.setVisibleRowCount(8);
+        JScrollPane scroller = new JScrollPane(scoreboardList);
+        scroller.setPreferredSize(new Dimension(260, 200));
+        center.add(scroller);
+
+        center.add(Box.createVerticalStrut(12));
+
+        JLabel noticeLabel = new JLabel("Server Notice");
+        noticeLabel.setForeground(Color.WHITE);
+        noticeLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        center.add(noticeLabel);
+
+        serverNoticeArea.setEditable(false);
+        serverNoticeArea.setLineWrap(true);
+        serverNoticeArea.setWrapStyleWord(true);
+        serverNoticeArea.setBackground(new Color(40, 40, 40));
+        serverNoticeArea.setForeground(Color.WHITE);
+        serverNoticeArea.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        serverNoticeArea.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        JScrollPane noticeScroll = new JScrollPane(serverNoticeArea);
+        noticeScroll.setPreferredSize(new Dimension(260, 120));
+        center.add(noticeScroll);
+
+        add(center, BorderLayout.CENTER);
+    }
+
+    private void startRefreshTimer() {
+        Timer t = new Timer(500, e -> refreshFromState());
+        t.start();
+    }
+
+    private void refreshFromState() {
+    SwingUtilities.invokeLater(() -> {
             GameSnapshot snapshot = clientState.getLatestSnapshot();
             if (snapshot == null) {
-                g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                g2.drawString("Waiting for game state...", 20, 70);
+                playerNameLabel.setText("Player: " + clientState.getLocalPlayerName());
+                playerIdLabel.setText("ID: " + clientState.getLocalPlayerId());
+                matchStatusLabel.setText("Match: waiting");
+                scoreboardModel.clear();
+                serverNoticeArea.setText("Waiting for game state...");
+                timeBar.setString("-");
+                timeBar.setValue(0);
                 return;
             }
 
-            g2.setFont(new Font("SansSerif", Font.BOLD, 15));
-            g2.drawString("Player: " + clientState.getLocalPlayerName(), 20, 70);
-            g2.drawString("Player ID: " + clientState.getLocalPlayerId(), 20, 95);
-            g2.drawString("Time Left: " + snapshot.getTimeLeftSeconds() + "s", 20, 120);
+            playerNameLabel.setText("Player: " + clientState.getLocalPlayerName());
+            playerIdLabel.setText("ID: " + clientState.getLocalPlayerId());
 
             String matchStatus;
             if (snapshot.isMatchEnded()) {
@@ -50,85 +139,27 @@ public class HudPanel extends JPanel {
             } else {
                 matchStatus = "Waiting";
             }
+            matchStatusLabel.setText("Match: " + matchStatus);
 
-            g2.drawString("Match: " + matchStatus, 20, 145);
+            // time bar
+            int total = Math.max(1, Constants.MATCH_DURATION_SECONDS);
+            int left = Math.max(0, snapshot.getTimeLeftSeconds());
+            int value = Math.min(total, left);
+            timeBar.setMaximum(total);
+            timeBar.setValue(value);
+            timeBar.setString(left + "s left");
 
-            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
-            g2.drawString("Controls", 20, 185);
-
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            g2.drawString("Move: W A S D / Arrow Keys", 20, 210);
-            g2.drawString("Freeze Attack: Space or F", 20, 232);
-
-            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
-            g2.drawString("Scoreboard", 20, 275);
-
+            // scoreboard
             List<PlayerState> players = new ArrayList<>(snapshot.getPlayers());
             players.sort(Comparator.comparingInt(PlayerState::getScore).reversed()
                     .thenComparingInt(PlayerState::getPlayerId));
-
-            int y = 305;
-            g2.setFont(new Font("Monospaced", Font.PLAIN, 14));
-            for (PlayerState player : players) {
-                String label = "#" + player.getPlayerId() + " " + player.getPlayerName()
-                        + " : " + player.getScore();
-
-                if (player.getPlayerId() == clientState.getLocalPlayerId()) {
-                    g2.setColor(new Color(255, 230, 140));
-                } else if (!player.isConnected()) {
-                    g2.setColor(Color.GRAY);
-                } else {
-                    g2.setColor(Color.WHITE);
-                }
-
-                g2.drawString(label, 20, y);
-                y += 24;
+            scoreboardModel.clear();
+            for (PlayerState p : players) {
+                String label = String.format("#%d %-12s %4d", p.getPlayerId(), p.getPlayerName(), p.getScore());
+                scoreboardModel.addElement(label);
             }
 
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
-            g2.drawString("Server Notice", 20, Math.max(460, y + 20));
-
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
-            drawWrappedText(
-                    g2,
-                    snapshot.getServerNotice() == null ? "-" : snapshot.getServerNotice(),
-                    20,
-                    Math.max(485, y + 45),
-                    230,
-                    18
-            );
-
-        } finally {
-            g2.dispose();
-        }
-    }
-
-    private void drawWrappedText(Graphics2D g2, String text, int x, int y, int maxWidth, int lineHeight) {
-        if (text == null || text.isBlank()) {
-            g2.drawString("-", x, y);
-            return;
-        }
-
-        FontMetrics metrics = g2.getFontMetrics();
-        String[] words = text.split("\\s+");
-
-        StringBuilder line = new StringBuilder();
-        int currentY = y;
-
-        for (String word : words) {
-            String candidate = line.length() == 0 ? word : line + " " + word;
-            if (metrics.stringWidth(candidate) > maxWidth) {
-                g2.drawString(line.toString(), x, currentY);
-                line = new StringBuilder(word);
-                currentY += lineHeight;
-            } else {
-                line = new StringBuilder(candidate);
-            }
-        }
-
-        if (line.length() > 0) {
-            g2.drawString(line.toString(), x, currentY);
-        }
+            serverNoticeArea.setText(snapshot.getServerNotice() == null ? "-" : snapshot.getServerNotice());
+        });
     }
 }

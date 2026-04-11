@@ -6,12 +6,10 @@ import common.ItemState;
 import common.ItemType;
 import common.PlayerState;
 import common.Position;
-import common.ZoneControlState;
 import common.ZoneStateModel;
-
-import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import javax.swing.*;
 
 public class GamePanel extends JPanel {
 

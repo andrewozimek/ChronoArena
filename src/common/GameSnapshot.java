@@ -5,114 +5,92 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameSnapshot implements Serializable {
-    private static final long serialVersionUID = 1L;
 
-    private long serverTimeMs;
-    private int timeLeftSeconds;
-    private boolean matchRunning;
-    private boolean matchEnded;
-    private Integer winnerPlayerId;
-    private List<PlayerState> players;
-    private List<ZoneStateModel> zones;
-    private List<ItemState> items;
-    private String serverNotice;
+	private static final long serialVersionUID = 1L;
 
-    public GameSnapshot() {
-        this.players = new ArrayList<>();
-        this.zones = new ArrayList<>();
-        this.items = new ArrayList<>();
-    }
+	private long serverTimeMs;
+	private boolean matchRunning;
+	private boolean matchEnded;
+	private String serverNotice;
+	private int timeLeftSeconds;
+	private Integer winnerPlayerId;
 
-    public GameSnapshot copy() {
-        GameSnapshot copy = new GameSnapshot();
-        copy.serverTimeMs = this.serverTimeMs;
-        copy.timeLeftSeconds = this.timeLeftSeconds;
-        copy.matchRunning = this.matchRunning;
-        copy.matchEnded = this.matchEnded;
-        copy.winnerPlayerId = this.winnerPlayerId;
-        copy.serverNotice = this.serverNotice;
+	private List<PlayerState> players = new ArrayList<>();
+	private List<ZoneStateModel> zones = new ArrayList<>();
+	private List<ItemState> items = new ArrayList<>();
 
-        for (PlayerState player : this.players) {
-            copy.players.add(player.copy());
-        }
-        for (ZoneStateModel zone : this.zones) {
-            copy.zones.add(zone.copy());
-        }
-        for (ItemState item : this.items) {
-            copy.items.add(item.copy());
-        }
-        return copy;
-    }
+	public GameSnapshot() {
+	}
 
-    public long getServerTimeMs() {
-        return serverTimeMs;
-    }
+	public long getServerTimeMs() {
+		return serverTimeMs;
+	}
 
-    public void setServerTimeMs(long serverTimeMs) {
-        this.serverTimeMs = serverTimeMs;
-    }
+	public void setServerTimeMs(long serverTimeMs) {
+		this.serverTimeMs = serverTimeMs;
+	}
 
-    public int getTimeLeftSeconds() {
-        return timeLeftSeconds;
-    }
+	public boolean isMatchRunning() {
+		return matchRunning;
+	}
 
-    public void setTimeLeftSeconds(int timeLeftSeconds) {
-        this.timeLeftSeconds = timeLeftSeconds;
-    }
+	public void setMatchRunning(boolean matchRunning) {
+		this.matchRunning = matchRunning;
+	}
 
-    public boolean isMatchRunning() {
-        return matchRunning;
-    }
+	public boolean isMatchEnded() {
+		return matchEnded;
+	}
 
-    public void setMatchRunning(boolean matchRunning) {
-        this.matchRunning = matchRunning;
-    }
+	public void setMatchEnded(boolean matchEnded) {
+		this.matchEnded = matchEnded;
+	}
 
-    public boolean isMatchEnded() {
-        return matchEnded;
-    }
+	public String getServerNotice() {
+		return serverNotice;
+	}
 
-    public void setMatchEnded(boolean matchEnded) {
-        this.matchEnded = matchEnded;
-    }
+	public void setServerNotice(String serverNotice) {
+		this.serverNotice = serverNotice;
+	}
 
-    public Integer getWinnerPlayerId() {
-        return winnerPlayerId;
-    }
+	public int getTimeLeftSeconds() {
+		return timeLeftSeconds;
+	}
 
-    public void setWinnerPlayerId(Integer winnerPlayerId) {
-        this.winnerPlayerId = winnerPlayerId;
-    }
+	public void setTimeLeftSeconds(int timeLeftSeconds) {
+		this.timeLeftSeconds = timeLeftSeconds;
+	}
 
-    public List<PlayerState> getPlayers() {
-        return players;
-    }
+	public Integer getWinnerPlayerId() {
+		return winnerPlayerId;
+	}
 
-    public void setPlayers(List<PlayerState> players) {
-        this.players = players;
-    }
+	public void setWinnerPlayerId(Integer winnerPlayerId) {
+		this.winnerPlayerId = winnerPlayerId;
+	}
 
-    public List<ZoneStateModel> getZones() {
-        return zones;
-    }
+	public List<PlayerState> getPlayers() {
+		return players;
+	}
 
-    public void setZones(List<ZoneStateModel> zones) {
-        this.zones = zones;
-    }
+	public void setPlayers(List<PlayerState> players) {
+		this.players = players == null ? new ArrayList<>() : players;
+	}
 
-    public List<ItemState> getItems() {
-        return items;
-    }
+	public List<ZoneStateModel> getZones() {
+		return zones;
+	}
 
-    public void setItems(List<ItemState> items) {
-        this.items = items;
-    }
+	public void setZones(List<ZoneStateModel> zones) {
+		this.zones = zones == null ? new ArrayList<>() : zones;
+	}
 
-    public String getServerNotice() {
-        return serverNotice;
-    }
+	public List<ItemState> getItems() {
+		return items;
+	}
 
-    public void setServerNotice(String serverNotice) {
-        this.serverNotice = serverNotice;
-    }
+	public void setItems(List<ItemState> items) {
+		this.items = items == null ? new ArrayList<>() : items;
+	}
 }
