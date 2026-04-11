@@ -11,6 +11,7 @@ public class GameFrame extends JFrame {
     private final GameClient gameClient;
     private final GamePanel gamePanel;
     private final HudPanel hudPanel;
+    private long lastRepaintTime = -1;
 
     public GameFrame(GameClient gameClient) {
         this.gameClient = gameClient;
@@ -27,16 +28,35 @@ public class GameFrame extends JFrame {
 
         pack();
         setLocationRelativeTo(null);
+        // ensure game panel gets focus for key events after showing
+        SwingUtilities.invokeLater(() -> {
+            gamePanel.requestFocusInWindow();
+            requestFocusInWindow();
+        });
     }
 
     private void buildLayout() {
-        // top area with simple title and quick controls
-        JPanel topBar = new JPanel(new BorderLayout());
+        // top area with gradient title bar
+        JPanel topBar = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                try {
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    GradientPaint gp = new GradientPaint(0, 0, new Color(60, 60, 60), getWidth(), 0, new Color(35, 35, 35));
+                    g2.setPaint(gp);
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                } finally {
+                    g2.dispose();
+                }
+                super.paintComponent(g);
+            }
+        };
+        topBar.setOpaque(false);
         topBar.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
         JLabel title = new JLabel("ChronoArena");
         title.setFont(new Font("SansSerif", Font.BOLD, 18));
         title.setForeground(new Color(245, 245, 245));
-        topBar.setBackground(new Color(45, 45, 45));
         topBar.add(title, BorderLayout.WEST);
 
         // root layout
@@ -100,6 +120,14 @@ public class GameFrame extends JFrame {
 
     private void startRepaintLoop() {
         Timer timer = new Timer(50, e -> {
+            long now = System.currentTimeMillis();
+            if (lastRepaintTime > 0) {
+                long delta = now - lastRepaintTime;
+                int fps = delta > 0 ? (int) (1000 / delta) : 0;
+                hudPanel.setFps(fps);
+            }
+            lastRepaintTime = now;
+
             gamePanel.repaint();
             hudPanel.repaint();
         });

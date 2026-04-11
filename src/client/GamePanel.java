@@ -8,6 +8,7 @@ import common.PlayerState;
 import common.Position;
 import common.ZoneStateModel;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 import java.util.List;
 import javax.swing.*;
 
@@ -15,10 +16,12 @@ public class GamePanel extends JPanel {
 
     private final ClientState clientState;
 
+    // no animated background — keep the arena visually simple and stable
+
     public GamePanel(ClientState clientState) {
         this.clientState = clientState;
         setPreferredSize(new Dimension(Constants.MAP_WIDTH, Constants.MAP_HEIGHT));
-        setBackground(new Color(20, 20, 20));
+        setBackground(Color.BLACK);
         setFocusable(true);
     }
 
@@ -29,6 +32,8 @@ public class GamePanel extends JPanel {
         Graphics2D g2 = (Graphics2D) g.create();
         try {
             enableAntialiasing(g2);
+
+            // static dark background (no animation)
 
             GameSnapshot snapshot = clientState.getLatestSnapshot();
             if (snapshot == null) {
@@ -57,6 +62,10 @@ public class GamePanel extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     }
 
+    private void drawTiledBackground(Graphics2D g2) {
+        // no tiled background — left intentionally empty
+    }
+
     private void drawArenaGrid(Graphics2D g2) {
         g2.setColor(new Color(40, 40, 40));
 
@@ -69,7 +78,7 @@ public class GamePanel extends JPanel {
         }
     }
 
-    private void drawZones(Graphics2D g2, List<ZoneStateModel> zones) {
+    private void drawZones(Graphics2D g2, java.util.List<ZoneStateModel> zones) {
         for (ZoneStateModel zone : zones) {
             Color fill;
             switch (zone.getState()) {
@@ -89,20 +98,29 @@ public class GamePanel extends JPanel {
             }
 
             g2.setColor(fill);
-            g2.fillRect(zone.getX(), zone.getY(), zone.getWidth(), zone.getHeight());
+            int cx = zone.getX() + zone.getWidth() / 2;
+            int cy = zone.getY() + zone.getHeight() / 2;
+            int r = Math.min(zone.getWidth(), zone.getHeight()) / 2;
+            g2.fillOval(cx - r, cy - r, r * 2, r * 2);
 
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(2f));
-            g2.drawRect(zone.getX(), zone.getY(), zone.getWidth(), zone.getHeight());
+            g2.drawOval(cx - r, cy - r, r * 2, r * 2);
 
             g2.setFont(new Font("SansSerif", Font.BOLD, 14));
-            g2.drawString(zone.getZoneId(), zone.getX() + 10, zone.getY() + 20);
+            FontMetrics fm = g2.getFontMetrics();
+            String zid = zone.getZoneId();
+            int tw = fm.stringWidth(zid);
+            g2.drawString(zid, cx - tw / 2, cy - 6);
 
             String ownerText = "Owner: " + (zone.getOwnerPlayerId() == null ? "-" : "#" + zone.getOwnerPlayerId());
             g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
-            g2.drawString(ownerText, zone.getX() + 10, zone.getY() + 40);
+            int otw = g2.getFontMetrics().stringWidth(ownerText);
+            g2.drawString(ownerText, cx - otw / 2, cy + 12);
 
-            g2.drawString("State: " + zone.getState().name(), zone.getX() + 10, zone.getY() + 58);
+            String stateText = "State: " + zone.getState().name();
+            int stw = g2.getFontMetrics().stringWidth(stateText);
+            g2.drawString(stateText, cx - stw / 2, cy + 28);
         }
     }
 
@@ -113,16 +131,24 @@ public class GamePanel extends JPanel {
                 continue;
             }
 
+            // pulse effect
+            double phase = (System.currentTimeMillis() % 1000) / 1000.0;
+            float scale = 1.0f + (float) (0.12 * Math.sin(phase * Math.PI * 2 + (p.getX() + p.getY()) * 0.01));
+            int base = 10;
+            int size = Math.max(6, (int) (base * 2 * scale));
+
             if (item.getItemType() == ItemType.ENERGY) {
                 g2.setColor(new Color(255, 220, 60));
-                g2.fillOval(p.getX() - 10, p.getY() - 10, 20, 20);
-                g2.setColor(Color.BLACK);
-                g2.drawString("E", p.getX() - 4, p.getY() + 5);
+                g2.fillOval(p.getX() - size/2, p.getY() - size/2, size, size);
+                g2.setColor(new Color(0,0,0,150));
+                g2.setFont(new Font("SansSerif", Font.BOLD, Math.max(10, size/2)));
+                g2.drawString("E", p.getX() - (size/4), p.getY() + (size/4));
             } else {
                 g2.setColor(new Color(130, 220, 255));
-                g2.fillOval(p.getX() - 10, p.getY() - 10, 20, 20);
-                g2.setColor(Color.BLACK);
-                g2.drawString("F", p.getX() - 4, p.getY() + 5);
+                g2.fillOval(p.getX() - size/2, p.getY() - size/2, size, size);
+                g2.setColor(new Color(0,0,0,150));
+                g2.setFont(new Font("SansSerif", Font.BOLD, Math.max(10, size/2)));
+                g2.drawString("F", p.getX() - (size/4), p.getY() + (size/4));
             }
         }
     }
@@ -144,6 +170,19 @@ public class GamePanel extends JPanel {
                 g2.setColor(new Color(255, 200, 70));
             } else {
                 g2.setColor(new Color(200, 90, 120));
+            }
+
+            // local player glow
+            if (isLocal) {
+                Composite old = g2.getComposite();
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f));
+                g2.setColor(new Color(255, 220, 100));
+                int gx = pos.getX() - 12;
+                int gy = pos.getY() - 12;
+                int gw = Constants.PLAYER_SIZE + 24;
+                int gh = Constants.PLAYER_SIZE + 24;
+                g2.fill(new Ellipse2D.Float(gx, gy, gw, gh));
+                g2.setComposite(old);
             }
 
             g2.fillRoundRect(
