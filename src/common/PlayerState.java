@@ -16,8 +16,7 @@ public class PlayerState implements Serializable {
     private long freezeCooldownUntilEpochMs;
     private int hp;
 
-    public PlayerState(){
-        //needed for copy
+    public PlayerState() {
     }
 
     public PlayerState(int playerId, String playerName, Position position) {
@@ -33,7 +32,7 @@ public class PlayerState implements Serializable {
         this.hp = 100;
     }
 
-    public PlayerState copy(){
+    public PlayerState copy() {
         PlayerState copy = new PlayerState();
         copy.playerId = this.playerId;
         copy.playerName = this.playerName;
@@ -48,91 +47,87 @@ public class PlayerState implements Serializable {
         return copy;
     }
 
-
-
-    //getters and setters
-
-    public int getPlayerId(){
+    public int getPlayerId() {
         return playerId;
     }
 
-    public void setPlayerId(int playerId){
+    public void setPlayerId(int playerId) {
         this.playerId = playerId;
     }
 
-    public String getPlayerName(){
+    public String getPlayerName() {
         return playerName;
     }
 
-    public void setPlayerName(String playerName){
+    public void setPlayerName(String playerName) {
         this.playerName = playerName;
     }
 
-    public Position getPosition(){
+    public Position getPosition() {
         return position;
     }
 
-    public void setPosition(Position position){
+    public void setPosition(Position position) {
         this.position = position;
     }
 
-    public int getScore(){
+    public int getScore() {
         return score;
     }
 
-    public void setScore(int score){
+    public void setScore(int score) {
         this.score = score;
     }
 
-    public void addScore(int amount){
+    public void addScore(int amount) {
         this.score += amount;
     }
 
-    public boolean isConnected(){
+    public boolean isConnected() {
         return connected;
     }
 
-    public void setConnected(boolean connected){
+    public void setConnected(boolean connected) {
         this.connected = connected;
     }
 
-    public boolean isFrozen(){
+    public boolean isFrozen() {
         return frozen;
     }
 
-    public void setFrozen(boolean frozen){
+    public void setFrozen(boolean frozen) {
         this.frozen = frozen;
     }
 
-    public long getFrozenUntilEpochMs(){
+    public long getFrozenUntilEpochMs() {
         return frozenUntilEpochMs;
     }
 
-    public void setFrozenUntilEpochMs(long frozenUntilEpochMs){
+    public void setFrozenUntilEpochMs(long frozenUntilEpochMs) {
         this.frozenUntilEpochMs = frozenUntilEpochMs;
     }
 
-    public boolean isFreezePowerAvailable(){
+    public boolean isFreezePowerAvailable() {
         return freezePowerAvailable;
     }
 
-    public void setFreezePowerAvailable(boolean freezePowerAvailable){
+    public void setFreezePowerAvailable(boolean freezePowerAvailable) {
         this.freezePowerAvailable = freezePowerAvailable;
     }
 
-    public long getFreezeCooldownUntilEpochMs(){
+    public long getFreezeCooldownUntilEpochMs() {
         return freezeCooldownUntilEpochMs;
     }
 
-    public void setFreezeCooldownUntilEpochMs(long freezeCooldownUntilEpochMs){
+    public void setFreezeCooldownUntilEpochMs(long freezeCooldownUntilEpochMs) {
         this.freezeCooldownUntilEpochMs = freezeCooldownUntilEpochMs;
     }
 
-    public int getHp(){
+    public int getHp() {
         return hp;
     }
 
-    public void setHp(int hp){
+    public void setHp(int hp) {
         this.hp = hp;
     }
 }
