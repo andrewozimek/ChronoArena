@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Directories
-SRC_CLIENT="src/client"
+SRC_SERVER="src/server"
 SRC_COMMON="src/common"
-OUT_DIR="out"
-JAR_NAME="client.jar"
-MAIN_CLASS="client.ClientMain"
+OUT_DIR="server_out"
+JAR_NAME="server.jar"
+MAIN_CLASS="server.ServerMain"
 
 # Clean and create output dir
 rm -rf "$OUT_DIR"
@@ -13,10 +13,10 @@ mkdir -p "$OUT_DIR"
 
 # Compile
 javac -d "$OUT_DIR" \
-  $(find "$SRC_CLIENT" "$SRC_COMMON" -name "*.java")
+  $(find "$SRC_SERVER" "$SRC_COMMON" -name "*.java")
 
 # Copy resources
-cp -r "$SRC_CLIENT/resources" "$OUT_DIR/"
+cp -r "$SRC_SERVER/resources" "$OUT_DIR/"
 
 # Create manifest
 echo "Main-Class: $MAIN_CLASS" > manifest.txt

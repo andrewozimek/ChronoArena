@@ -46,3 +46,9 @@ bin/
 
 ### config files ###
 config/
+
+### jar stuff ###
+client.jar
+server.jar
+client_out/
+server_out/
