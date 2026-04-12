@@ -54,7 +54,8 @@ public class GamePanel extends JPanel {
                 return;
             }
 
-            drawArenaGrid(g2);
+            //drawArenaGrid(g2);
+            g2.drawImage(mapBackground, 0, 0, null);
             drawZones(g2, snapshot.getZones());
             drawItems(g2, snapshot.getItems());
             drawPlayers(g2, snapshot.getPlayers());
@@ -78,7 +79,6 @@ public class GamePanel extends JPanel {
 
     private void drawArenaGrid(Graphics2D g2) {
         g2.setColor(new Color(40, 40, 40));
-        g2.drawImage(mapBackground, 0, 0, null);
 
         for (int x = 0; x <= Constants.MAP_WIDTH; x += 50) {
             g2.drawLine(x, 0, x, Constants.MAP_HEIGHT);
