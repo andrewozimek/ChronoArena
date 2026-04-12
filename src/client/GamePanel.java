@@ -10,19 +10,29 @@ import common.ZoneStateModel;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 public class GamePanel extends JPanel {
 
     private final ClientState clientState;
-
-    // no animated background — keep the arena visually simple and stable
+    private BufferedImage[] tiles;
+    private BufferedImage freeze;
+    private BufferedImage energy;
+    
+    private final int TILE_WIDTH = 50;
+    private final int TILE_HEIGHT = 50;
 
     public GamePanel(ClientState clientState) {
         this.clientState = clientState;
         setPreferredSize(new Dimension(Constants.MAP_WIDTH, Constants.MAP_HEIGHT));
         setBackground(Color.BLACK);
         setFocusable(true);
+        loadImages();
     }
 
     @Override
@@ -247,5 +257,29 @@ public class GamePanel extends JPanel {
         int x = (getWidth() - fm.stringWidth(text)) / 2;
         int y = getHeight() / 2 + 10;
         g2.drawString(text, x, y);
+    }
+
+    private void loadImages() {
+        tiles = new BufferedImage[6];
+        try{
+            tiles[0] = resizeImage(ImageIO.read(new File("client/sand1.png")));
+            tiles[1] = resizeImage(ImageIO.read(new File("client/sand2.png")));
+            tiles[2] = resizeImage(ImageIO.read(new File("client/sand3.png")));
+            tiles[3] = resizeImage(ImageIO.read(new File("client/water_top.png")));
+            tiles[4] = resizeImage(ImageIO.read(new File("client/water1.png")));
+            tiles[5] = resizeImage(ImageIO.read(new File("client/water2.png")));
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    private BufferedImage resizeImage(BufferedImage image) {
+        BufferedImage resized = new BufferedImage(TILE_WIDTH, TILE_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = resized.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g.drawImage(image, 0, 0, TILE_WIDTH, TILE_HEIGHT, null);
+        g.dispose();
+        return resized;
     }
 }
