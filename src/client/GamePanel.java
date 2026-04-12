@@ -16,6 +16,7 @@ import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import common.MapLayout;
 
 public class GamePanel extends JPanel {
 
@@ -23,6 +24,7 @@ public class GamePanel extends JPanel {
     private BufferedImage[] tiles;
     private BufferedImage freeze;
     private BufferedImage energy;
+    private BufferedImage mapBackground;
     
     private final int TILE_WIDTH = 50;
     private final int TILE_HEIGHT = 50;
@@ -33,6 +35,7 @@ public class GamePanel extends JPanel {
         setBackground(Color.BLACK);
         setFocusable(true);
         loadImages();
+        createBackground();
     }
 
     @Override
@@ -72,12 +75,10 @@ public class GamePanel extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     }
 
-    private void drawTiledBackground(Graphics2D g2) {
-        // no tiled background — left intentionally empty
-    }
 
     private void drawArenaGrid(Graphics2D g2) {
         g2.setColor(new Color(40, 40, 40));
+        g2.drawImage(mapBackground, 0, 0, null);
 
         for (int x = 0; x <= Constants.MAP_WIDTH; x += 50) {
             g2.drawLine(x, 0, x, Constants.MAP_HEIGHT);
@@ -262,12 +263,12 @@ public class GamePanel extends JPanel {
     private void loadImages() {
         tiles = new BufferedImage[6];
         try{
-            tiles[0] = resizeImage(ImageIO.read(new File("client/sand1.png")));
-            tiles[1] = resizeImage(ImageIO.read(new File("client/sand2.png")));
-            tiles[2] = resizeImage(ImageIO.read(new File("client/sand3.png")));
-            tiles[3] = resizeImage(ImageIO.read(new File("client/water_top.png")));
-            tiles[4] = resizeImage(ImageIO.read(new File("client/water1.png")));
-            tiles[5] = resizeImage(ImageIO.read(new File("client/water2.png")));
+            tiles[0] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/sand1.PNG")));           
+            tiles[1] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/sand2.PNG")));
+            tiles[2] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/sand3.PNG")));
+            tiles[3] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/water_top.PNG")));
+            tiles[4] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/water1.PNG")));
+            tiles[5] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/water2.PNG")));
         }
         catch(IOException e){
             e.printStackTrace();
@@ -275,11 +276,51 @@ public class GamePanel extends JPanel {
     }
 
     private BufferedImage resizeImage(BufferedImage image) {
-        BufferedImage resized = new BufferedImage(TILE_WIDTH, TILE_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        BufferedImage resized = new BufferedImage(TILE_WIDTH, TILE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = resized.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
         g.drawImage(image, 0, 0, TILE_WIDTH, TILE_HEIGHT, null);
         g.dispose();
         return resized;
+    }
+
+    private void createBackground(){
+        int w = Constants.MAP_WIDTH;
+        int h = Constants.MAP_HEIGHT;
+        BufferedImage background = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage Tile;
+        Graphics2D g = background.createGraphics();
+
+        for (int x = 0; x < Constants.MAP_WIDTH; x += 50) {
+            for (int y = 0; y < Constants.MAP_HEIGHT; y += 50) {
+                switch (MapLayout.map[y/50][x/50]){
+                    case 1:
+                        Tile = tiles[0];
+                        break;
+                    case 2:
+                        Tile = tiles[1];
+                        break;
+
+                    case 3:
+                        Tile = tiles[2];
+                        break;
+
+                    case 4:
+                        Tile = tiles[3];
+                        break;
+
+                    case 5:
+                        Tile = tiles[4];
+                        break;
+
+                    default:
+                        Tile = tiles[5];
+                        break;
+                }
+                
+                g.drawImage(Tile, x, y, null);
+            }
+        }
+        mapBackground = background;
     }
 }
