@@ -8,7 +8,7 @@ public final class Constants {
    public static final int MAP_WIDTH = 1000;
    public static final int MAP_HEIGHT = 700;
 
-   public static final int LOBBY_DURATION_SECONDS = 60;
+   public static final int LOBBY_DURATION_SECONDS = 10;
 
    public static final int PLAYER_SIZE = 28;
    public static final int PLAYER_SPEED = 8;

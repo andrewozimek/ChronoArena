@@ -64,7 +64,7 @@ public class GameStateManager {
         this.phase = MatchPhase.LOBBY;
         this.lobbyStartTimeMs = System.currentTimeMillis();
         this.playerVotes.clear();
-        this.serverNotice = "Lobby open — vote for match duration!";
+        this.serverNotice = "Vote for match duration. Match starts when all players vote or in a few seconds.";
     }
 
     public synchronized void tickLobby() {
@@ -107,13 +107,25 @@ public class GameStateManager {
         this.lastItemSpawnTimeMs = System.currentTimeMillis();
     }
 
-    public void submitVote(int playerId, int durationSeconds) {
-        // only accept votes during the lobby; one vote per player (last write wins)
+    public synchronized void submitVote(int playerId, int durationSeconds) {
         if (phase != MatchPhase.LOBBY) {
             return;
         }
+
         playerVotes.put(playerId, durationSeconds);
         System.out.println("Player " + playerId + " voted for " + durationSeconds + "s");
+
+        int connectedPlayers = 0;
+        for (PlayerState player : players.values()) {
+            if (player.isConnected()) {
+                connectedPlayers++;
+            }
+        }
+
+        if (connectedPlayers >= 2 && playerVotes.size() >= connectedPlayers) {
+            serverNotice = "All players voted. Starting match...";
+            resolveLobby();
+        }
     }
 
     public MatchPhase getPhase() {
