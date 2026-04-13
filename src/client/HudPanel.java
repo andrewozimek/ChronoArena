@@ -8,6 +8,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.IntConsumer;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -16,6 +17,7 @@ import javax.swing.border.TitledBorder;
 public class HudPanel extends JPanel {
 
     private final ClientState clientState;
+    private final IntConsumer voteCallback;
 
     private final JLabel titleLabel = new JLabel("ChronoArena");
     private final JLabel fpsLabel = new JLabel("FPS: -");
@@ -27,17 +29,21 @@ public class HudPanel extends JPanel {
     private final JList<String> scoreboardList = new JList<>(scoreboardModel);
     private final JTextArea serverNoticeArea = new JTextArea();
 
+    private final JPanel votePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4));
+    private final JLabel voteHintLabel = new JLabel("Vote match length:");
+
     private static final Color PANEL_BG = new Color(25, 28, 34);
     private static final Color CARD_BG = new Color(34, 38, 46);
     private static final Color CARD_ALT = new Color(28, 32, 40);
     private static final Color LINE = new Color(85, 95, 110);
     private static final Color TEXT = new Color(240, 240, 245);
     private static final Color MUTED = new Color(180, 185, 195);
-    private static final Color ACCENT = new Color(110, 170, 255);
     private static final Color LOCAL_HIGHLIGHT = new Color(68, 88, 145);
 
-    public HudPanel(ClientState clientState) {
+    public HudPanel(ClientState clientState, IntConsumer voteCallback) {
         this.clientState = clientState;
+        this.voteCallback = voteCallback;
+
         setPreferredSize(new Dimension(310, 700));
         setBackground(PANEL_BG);
         setForeground(TEXT);
@@ -111,6 +117,26 @@ public class HudPanel extends JPanel {
         center.add(timePanel);
         center.add(Box.createVerticalStrut(10));
 
+        JPanel votingCard = createCard("Vote");
+        votingCard.setLayout(new BoxLayout(votingCard, BoxLayout.Y_AXIS));
+
+        voteHintLabel.setForeground(MUTED);
+        voteHintLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        voteHintLabel.setBorder(new EmptyBorder(0, 2, 6, 2));
+
+        votePanel.setOpaque(false);
+
+        addVoteButton(votePanel, 60);
+        addVoteButton(votePanel, 90);
+        addVoteButton(votePanel, 120);
+        addVoteButton(votePanel, 180);
+
+        votingCard.add(voteHintLabel);
+        votingCard.add(votePanel);
+
+        center.add(votingCard);
+        center.add(Box.createVerticalStrut(10));
+
         scoreboardList.setForeground(TEXT);
         scoreboardList.setBackground(CARD_ALT);
         scoreboardList.setSelectionBackground(new Color(70, 75, 90));
@@ -175,6 +201,20 @@ public class HudPanel extends JPanel {
         center.add(noticePanel);
 
         add(center, BorderLayout.CENTER);
+    }
+
+    private void addVoteButton(JPanel panel, int seconds) {
+        JButton button = new JButton(seconds + "s");
+        button.setFocusPainted(false);
+        button.setBackground(new Color(62, 84, 130));
+        button.setForeground(Color.WHITE);
+        button.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+        button.addActionListener(e -> {
+            if (voteCallback != null) {
+                voteCallback.accept(seconds);
+            }
+        });
+        panel.add(button);
     }
 
     private JPanel createCard(String title) {
@@ -316,6 +356,8 @@ public class HudPanel extends JPanel {
                 matchStatusLabel.setText("Match: Waiting");
                 scoreboardModel.clear();
                 serverNoticeArea.setText("Waiting for game state...");
+                votePanel.setVisible(false);
+                voteHintLabel.setVisible(false);
                 return;
             }
 
@@ -347,6 +389,10 @@ public class HudPanel extends JPanel {
             }
 
             serverNoticeArea.setText(snapshot.getServerNotice() == null ? "-" : snapshot.getServerNotice());
+
+            boolean showVoting = !snapshot.isMatchRunning() && !snapshot.isMatchEnded();
+            votePanel.setVisible(showVoting);
+            voteHintLabel.setVisible(showVoting);
         });
     }
 }
