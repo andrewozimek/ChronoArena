@@ -242,26 +242,56 @@ public class GamePanel extends JPanel {
                     10
             );
 
+            String nameText = player.getPlayerName() + " (#" + player.getPlayerId() + ")";
+            String scoreText = "Score: " + player.getScore();
+
             g2.setFont(new Font("SansSerif", Font.BOLD, 12));
-            g2.drawString(
-                    player.getPlayerName() + " (#" + player.getPlayerId() + ")",
-                    pos.getX() - 10,
-                    pos.getY() - 8
-            );
+            FontMetrics nameFm = g2.getFontMetrics();
+            int nameWidth = nameFm.stringWidth(nameText);
+            int nameX = pos.getX() + (Constants.PLAYER_SIZE / 2) - (nameWidth / 2);
+            int nameY = pos.getY() - 10;
+
+            // dark rounded label behind player name
+            g2.setColor(new Color(0, 0, 0, 170));
+            g2.fillRoundRect(nameX - 6, nameY - 12, nameWidth + 12, 18, 10, 10);
+
+            g2.setColor(Color.WHITE);
+            g2.drawString(nameText, nameX, nameY);
 
             g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
-            g2.drawString(
-                    "Score: " + player.getScore(),
-                    pos.getX() - 4,
-                    pos.getY() + Constants.PLAYER_SIZE + 15
-            );
+            FontMetrics scoreFm = g2.getFontMetrics();
+            int scoreWidth = scoreFm.stringWidth(scoreText);
+            int scoreX = pos.getX() + (Constants.PLAYER_SIZE / 2) - (scoreWidth / 2);
+            int scoreY = pos.getY() + Constants.PLAYER_SIZE + 16;
+
+            g2.setColor(new Color(0, 0, 0, 160));
+            g2.fillRoundRect(scoreX - 5, scoreY - 11, scoreWidth + 10, 16, 10, 10);
+
+            g2.setColor(Color.WHITE);
+            g2.drawString(scoreText, scoreX, scoreY);
 
             if (player.isFreezePowerAvailable()) {
+                String freezeText = "Freeze Ready";
+                int freezeWidth = scoreFm.stringWidth(freezeText);
+                int freezeX = pos.getX() + (Constants.PLAYER_SIZE / 2) - (freezeWidth / 2);
+                int freezeY = pos.getY() + Constants.PLAYER_SIZE + 31;
+
+                g2.setColor(new Color(0, 0, 0, 160));
+                g2.fillRoundRect(freezeX - 5, freezeY - 11, freezeWidth + 10, 16, 10, 10);
+
                 g2.setColor(new Color(120, 240, 255));
-                g2.drawString("Freeze Ready", pos.getX() - 4, pos.getY() + Constants.PLAYER_SIZE + 29);
+                g2.drawString(freezeText, freezeX, freezeY);
             } else if (player.getFreezeCooldownUntilEpochMs() > System.currentTimeMillis()) {
+                String freezeText = "Cooldown";
+                int freezeWidth = scoreFm.stringWidth(freezeText);
+                int freezeX = pos.getX() + (Constants.PLAYER_SIZE / 2) - (freezeWidth / 2);
+                int freezeY = pos.getY() + Constants.PLAYER_SIZE + 31;
+
+                g2.setColor(new Color(0, 0, 0, 160));
+                g2.fillRoundRect(freezeX - 5, freezeY - 11, freezeWidth + 10, 16, 10, 10);
+
                 g2.setColor(new Color(190, 190, 255));
-                g2.drawString("Cooldown", pos.getX() - 4, pos.getY() + Constants.PLAYER_SIZE + 29);
+                g2.drawString(freezeText, freezeX, freezeY);
             }
         }
     }
