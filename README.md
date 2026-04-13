@@ -116,10 +116,75 @@ java -cp .\src\client;.\src\common client.ClientMain
 
 ---
 
+## Configuration Files
+
+The server and client each require a `.properties` config file. **These files are not included in the repository** to keep network details private — you must create them manually before running.
+
+### Directory Structure
+
+Place the config files in a `config/` folder **in the same directory as the JAR files**:
+
+```
+/your-game-folder/
+    ChronoArenaServer.jar
+    ChronoArenaClient.jar
+    config/
+        server.properties
+        client.properties
+```
+
+---
+
+### `config/server.properties`
+
+Create this file next to the server JAR with the following content:
+
+```properties
+# The IP address the server binds to. Use 0.0.0.0 to accept all connections.
+server.host=0.0.0.0
+
+# TCP port for reliable game messages (join requests, game state updates, voting)
+server.tcp.port=5000
+
+# UDP port for fast movement packets
+server.udp.port=5001
+```
+
+> If you are hosting on a local network, other players connect using your machine's local IP (e.g. `192.168.x.x`). If hosting over the internet, use your public IP and make sure the ports are forwarded.
+
+---
+
+### `config/client.properties`
+
+Create this file next to the client JAR with the following content:
+
+```properties
+# The IP address or hostname of the server to connect to
+server.host=127.0.0.1
+
+# Must match the server's TCP port
+server.tcp.port=5000
+
+# Must match the server's UDP port
+server.udp.port=5001
+
+# Your in-game display name
+client.player.name=Player1
+
+# (Optional) Local UDP port for the client. Leave as 0 to let the OS assign one automatically.
+client.local.udp.port=0
+```
+
+> Change `server.host` to the server's IP address if connecting over a network. The TCP and UDP ports must match what the server is configured to use.
+
+---
+
 ## Notes
 
 - Game starts when at least 2 players join
 - Players can vote for match duration
 - For demo, only these files are needed:
     - ChronoArenaServer.jar
-    - ChronoArenaClient.jar  
+    - ChronoArenaClient.jar
+    - config/server.properties
+    - config/client.properties
