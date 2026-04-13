@@ -7,39 +7,35 @@ import common.ItemType;
 import common.PlayerState;
 import common.Position;
 import common.ZoneStateModel;
-
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
-import java.awt.image.BufferedImage;
-import java.net.URL;
 import java.util.List;
-import java.util.Random;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import common.MapLayout;
 
 public class GamePanel extends JPanel {
 
     private final ClientState clientState;
+    private BufferedImage[] tiles;
+    private BufferedImage freeze;
+    private BufferedImage energy;
+    private BufferedImage mapBackground;
 
-    private BufferedImage sand1;
-    private BufferedImage sand2;
-    private BufferedImage sand3;
-    private BufferedImage water1;
-    private BufferedImage water2;
-    private BufferedImage waterTop;
-    private BufferedImage energyImage;
-
-    private final Random random = new Random(42);
-    private int[][] tileMap;
+    private final int TILE_WIDTH = 50;
+    private final int TILE_HEIGHT = 50;
 
     public GamePanel(ClientState clientState) {
         this.clientState = clientState;
         setPreferredSize(new Dimension(Constants.MAP_WIDTH, Constants.MAP_HEIGHT));
         setBackground(Color.BLACK);
         setFocusable(true);
-
-        loadResources();
-        buildTileMap();
+        loadImages();
+        createBackground();
     }
 
     @Override
@@ -50,15 +46,14 @@ public class GamePanel extends JPanel {
         try {
             enableAntialiasing(g2);
 
-            drawTiledBackground(g2);
-
             GameSnapshot snapshot = clientState.getLatestSnapshot();
             if (snapshot == null) {
                 drawCenteredMessage(g2, "Waiting for snapshot...");
                 return;
             }
 
-            drawArenaGrid(g2);
+            g2.drawImage(mapBackground, 0, 0, null);
+            //drawArenaGrid(g2);
             drawZones(g2, snapshot.getZones());
             drawItems(g2, snapshot.getItems());
             drawPlayers(g2, snapshot.getPlayers());
@@ -77,115 +72,13 @@ public class GamePanel extends JPanel {
         }
     }
 
-    private void loadResources() {
-        sand1 = loadImage("/client/resources/sand1.PNG");
-        sand2 = loadImage("/client/resources/sand2.PNG");
-        sand3 = loadImage("/client/resources/sand3.PNG");
-        water1 = loadImage("/client/resources/water1.PNG");
-        water2 = loadImage("/client/resources/water2.PNG");
-        waterTop = loadImage("/client/resources/water_top.PNG");
-        energyImage = loadImage("/client/resources/energy.png");
-    }
-
-    private BufferedImage loadImage(String path) {
-        try {
-            URL url = getClass().getResource(path);
-            if (url == null) {
-                System.err.println("Resource not found: " + path);
-                return null;
-            }
-            return ImageIO.read(url);
-        } catch (Exception e) {
-            System.err.println("Failed to load resource: " + path + " -> " + e.getMessage());
-            return null;
-        }
-    }
-
-    private void buildTileMap() {
-        int tileSize = 64;
-        int cols = (Constants.MAP_WIDTH / tileSize) + 2;
-        int rows = (Constants.MAP_HEIGHT / tileSize) + 2;
-        tileMap = new int[rows][cols];
-
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                tileMap[r][c] = random.nextInt(3);
-            }
-        }
-    }
-
     private void enableAntialiasing(Graphics2D g2) {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     }
 
-    private void drawTiledBackground(Graphics2D g2) {
-        int tileSize = 64;
-
-        BufferedImage[] sandTiles = new BufferedImage[]{sand1, sand2, sand3};
-
-        if (sand1 != null || sand2 != null || sand3 != null) {
-            for (int y = 0; y < Constants.MAP_HEIGHT; y += tileSize) {
-                for (int x = 0; x < Constants.MAP_WIDTH; x += tileSize) {
-                    int row = y / tileSize;
-                    int col = x / tileSize;
-                    int idx = tileMap[row][col];
-
-                    BufferedImage tile = sandTiles[idx];
-                    if (tile != null) {
-                        g2.drawImage(tile, x, y, tileSize, tileSize, null);
-                    } else {
-                        g2.setColor(new Color(35, 30, 20));
-                        g2.fillRect(x, y, tileSize, tileSize);
-                    }
-                }
-            }
-        } else {
-            g2.setColor(new Color(20, 20, 20));
-            g2.fillRect(0, 0, getWidth(), getHeight());
-        }
-
-        drawWaterDecor(g2);
-        drawVignette(g2);
-    }
-
-    private void drawWaterDecor(Graphics2D g2) {
-        if (waterTop != null) {
-            for (int x = 0; x < Constants.MAP_WIDTH; x += 128) {
-                g2.drawImage(waterTop, x, 0, 128, 48, null);
-            }
-        }
-
-        if (water1 != null) {
-            g2.drawImage(water1, 40, Constants.MAP_HEIGHT - 140, 140, 90, null);
-        }
-        if (water2 != null) {
-            g2.drawImage(water2, Constants.MAP_WIDTH - 220, 80, 170, 100, null);
-        }
-    }
-
-    private void drawVignette(Graphics2D g2) {
-        Paint old = g2.getPaint();
-
-        GradientPaint topFade = new GradientPaint(
-                0, 0, new Color(0, 0, 0, 70),
-                0, 140, new Color(0, 0, 0, 0)
-        );
-        g2.setPaint(topFade);
-        g2.fillRect(0, 0, getWidth(), 140);
-
-        GradientPaint bottomFade = new GradientPaint(
-                0, getHeight() - 140, new Color(0, 0, 0, 0),
-                0, getHeight(), new Color(0, 0, 0, 80)
-        );
-        g2.setPaint(bottomFade);
-        g2.fillRect(0, getHeight() - 140, getWidth(), 140);
-
-        g2.setPaint(old);
-    }
-
     private void drawArenaGrid(Graphics2D g2) {
-        g2.setColor(new Color(255, 255, 255, 35));
+        g2.setColor(new Color(40, 40, 40));
 
         for (int x = 0; x <= Constants.MAP_WIDTH; x += 50) {
             g2.drawLine(x, 0, x, Constants.MAP_HEIGHT);
@@ -233,10 +126,10 @@ public class GamePanel extends JPanel {
             FontMetrics fm = g2.getFontMetrics();
             String zid = zone.getZoneId();
             int tw = fm.stringWidth(zid);
-            g2.drawString(zid, cx - tw / 2, cy - 8);
+            g2.drawString(zid, cx - tw / 2, cy - 6);
 
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
             String ownerText = "Owner: " + (zone.getOwnerPlayerId() == null ? "-" : "#" + zone.getOwnerPlayerId());
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
             int otw = g2.getFontMetrics().stringWidth(ownerText);
             g2.drawString(ownerText, cx - otw / 2, cy + 12);
 
@@ -252,30 +145,42 @@ public class GamePanel extends JPanel {
             if (p == null) {
                 continue;
             }
-
+ 
             double phase = (System.currentTimeMillis() % 1000) / 1000.0;
             float scale = 1.0f + (float) (0.12 * Math.sin(phase * Math.PI * 2 + (p.getX() + p.getY()) * 0.01));
-
-            if (item.getItemType() == ItemType.ENERGY && energyImage != null) {
-                int size = Math.max(20, (int) (28 * scale));
-
-                Composite old = g2.getComposite();
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f));
-                g2.setColor(new Color(255, 220, 80));
-                g2.fillOval(p.getX() - size / 2 - 6, p.getY() - size / 2 - 6, size + 12, size + 12);
-                g2.setComposite(old);
-
-                g2.drawImage(energyImage, p.getX() - size / 2, p.getY() - size / 2, size, size, null);
-            } else {
-                int base = 10;
-                int size = Math.max(6, (int) (base * 2 * scale));
-
-                if (item.getItemType() == ItemType.ENERGY) {
+            int base = 10;
+            int size = Math.max(6, (int) (base * 2 * scale));
+ 
+            if (item.getItemType() == ItemType.ENERGY) {
+                // MERGED: glow effect + image rendering when energy image is available
+                if (energy != null) {
+                    int imgSize = Math.max(20, (int) (28 * scale));
+ 
+                    Composite old = g2.getComposite();
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f));
+                    g2.setColor(new Color(255, 220, 80));
+                    g2.fillOval(p.getX() - imgSize / 2 - 6, p.getY() - imgSize / 2 - 6, imgSize + 12, imgSize + 12);
+                    g2.setComposite(old);
+ 
+                    g2.drawImage(energy, p.getX() - imgSize / 2, p.getY() - imgSize / 2, imgSize, imgSize, null);
+                } else {
                     g2.setColor(new Color(255, 220, 60));
                     g2.fillOval(p.getX() - size / 2, p.getY() - size / 2, size, size);
                     g2.setColor(new Color(0, 0, 0, 150));
                     g2.setFont(new Font("SansSerif", Font.BOLD, Math.max(10, size / 2)));
                     g2.drawString("E", p.getX() - (size / 4), p.getY() + (size / 4));
+                }
+            } else {
+                if (freeze != null) {
+                    int imgSize = Math.max(20, (int) (28 * scale));
+ 
+                    Composite old = g2.getComposite();
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.25f));
+                    g2.setColor(new Color(130, 220, 255));
+                    g2.fillOval(p.getX() - imgSize / 2 - 6, p.getY() - imgSize / 2 - 6, imgSize + 12, imgSize + 12);
+                    g2.setComposite(old);
+ 
+                    g2.drawImage(freeze, p.getX() - imgSize / 2, p.getY() - imgSize / 2, imgSize, imgSize, null);
                 } else {
                     g2.setColor(new Color(130, 220, 255));
                     g2.fillOval(p.getX() - size / 2, p.getY() - size / 2, size, size);
@@ -386,5 +291,54 @@ public class GamePanel extends JPanel {
         int subX = (getWidth() - subFm.stringWidth(subtitle)) / 2;
         int subY = getHeight() / 2 + 28;
         g2.drawString(subtitle, subX, subY);
+    }
+
+    private void loadImages() {
+        tiles = new BufferedImage[6];
+        try {
+            tiles[0] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/sand1.PNG")));
+            tiles[1] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/sand2.PNG")));
+            tiles[2] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/sand3.PNG")));
+            tiles[3] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/water_top.PNG")));
+            tiles[4] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/water1.PNG")));
+            tiles[5] = resizeImage(ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/water2.PNG")));
+            energy   = ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/energy.png"));
+            freeze = ImageIO.read(GamePanel.class.getResourceAsStream("/client/resources/freeze.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private BufferedImage resizeImage(BufferedImage image) {
+        BufferedImage resized = new BufferedImage(TILE_WIDTH, TILE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = resized.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g.drawImage(image, 0, 0, TILE_WIDTH, TILE_HEIGHT, null);
+        g.dispose();
+        return resized;
+    }
+
+    private void createBackground() {
+        int w = Constants.MAP_WIDTH;
+        int h = Constants.MAP_HEIGHT;
+        BufferedImage background = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = background.createGraphics();
+
+        for (int y = 0; y < Constants.MAP_HEIGHT; y += 50) {
+            for (int x = 0; x < Constants.MAP_WIDTH; x += 50) {
+                BufferedImage tile;
+                switch (MapLayout.map[y / 50][x / 50]) {
+                    case 1:  tile = tiles[0]; break;
+                    case 2:  tile = tiles[1]; break;
+                    case 3:  tile = tiles[2]; break;
+                    case 4:  tile = tiles[3]; break;
+                    case 5:  tile = tiles[4]; break;
+                    default: tile = tiles[5]; break;
+                }
+                g.drawImage(tile, x, y, null);
+            }
+        }
+        g.dispose();
+        mapBackground = background;
     }
 }
