@@ -1,5 +1,6 @@
 package server;
 
+import common.MatchPhase;
 import common.PlayerState;
 import common.Position;
 import common.PropertiesLoader;
@@ -109,8 +110,8 @@ public class GameServer {
         Position spawn = gameStateManager.getSpawnForNewPlayer(playerId - 1);
         gameStateManager.addPlayer(playerId, playerName, spawn);
 
-        if (gameStateManager.getPlayerCount() >= 2) {
-            gameStateManager.startMatch();
+        if (gameStateManager.getPhase() == MatchPhase.WAITING) {
+            gameStateManager.startLobby();
         }
 
         return session;
@@ -197,5 +198,9 @@ public class GameServer {
 
         sessions.clear();
         System.out.println("Server shutdown complete");
+    }
+
+    public void submitVote(int playerId, int durationSeconds) {
+        gameStateManager.submitVote(playerId, durationSeconds);
     }
 }

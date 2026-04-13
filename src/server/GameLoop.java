@@ -2,6 +2,7 @@ package server;
 
 import common.Constants;
 import common.GameSnapshot;
+import common.MatchPhase;
 import common.TcpMessage;
 
 import java.io.ObjectOutputStream;
@@ -36,14 +37,17 @@ public class GameLoop implements Runnable {
 
             try {
                 List<QueuedPlayerAction> actions = fairActionQueue.drainSorted();
-                gameStateManager.processActions(actions, killSwitchManager);
-
+                if (gameStateManager.getPhase() == MatchPhase.LOBBY) {
+                    gameStateManager.tickLobby();
+                } else {
+                    gameStateManager.processActions(actions, killSwitchManager);
+                }
+                
                 long now = System.currentTimeMillis();
                 if (now - lastBroadcastTime >= Constants.SNAPSHOT_BROADCAST_INTERVAL_MS) {
                     broadcastSnapshot();
                     lastBroadcastTime = now;
                 }
-
                 long tickElapsed = System.currentTimeMillis() - tickStart;
                 long sleepTime = Constants.TICK_MILLIS - tickElapsed;
                 if (sleepTime > 0) {

@@ -88,6 +88,10 @@ public class TcpClientHandler implements Runnable {
                     if (Constants.MESSAGE_TYPE_CLIENT_DISCONNECT.equals(message.getType())) {
                         break;
                     }
+                    if (Constants.MESSAGE_TYPE_VOTE_REQUEST.equals(message.getType())
+                            && message.getPayload() instanceof Integer) {
+                        gameServer.submitVote(playerId, (Integer) message.getPayload());
+                    }
                 }
             }
 
