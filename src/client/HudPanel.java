@@ -3,17 +3,20 @@ package client;
 import common.Constants;
 import common.GameSnapshot;
 import common.PlayerState;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 
 public class HudPanel extends JPanel {
 
     private final ClientState clientState;
 
-    // UI components
     private final JLabel titleLabel = new JLabel("ChronoArena");
     private final JLabel fpsLabel = new JLabel("FPS: -");
     private final JLabel playerNameLabel = new JLabel("Player: -");
@@ -24,149 +27,187 @@ public class HudPanel extends JPanel {
     private final JList<String> scoreboardList = new JList<>(scoreboardModel);
     private final JTextArea serverNoticeArea = new JTextArea();
 
+    private static final Color PANEL_BG = new Color(25, 28, 34);
+    private static final Color CARD_BG = new Color(34, 38, 46);
+    private static final Color CARD_ALT = new Color(28, 32, 40);
+    private static final Color LINE = new Color(85, 95, 110);
+    private static final Color TEXT = new Color(240, 240, 245);
+    private static final Color MUTED = new Color(180, 185, 195);
+    private static final Color ACCENT = new Color(110, 170, 255);
+    private static final Color LOCAL_HIGHLIGHT = new Color(68, 88, 145);
+
     public HudPanel(ClientState clientState) {
         this.clientState = clientState;
-        setPreferredSize(new Dimension(300, 700));
-        setBackground(new Color(30, 30, 30));
-        setForeground(Color.WHITE);
-        setLayout(new BorderLayout(8, 8));
+        setPreferredSize(new Dimension(310, 700));
+        setBackground(PANEL_BG);
+        setForeground(TEXT);
+        setLayout(new BorderLayout(10, 10));
+        setBorder(new EmptyBorder(8, 8, 8, 8));
 
         buildUi();
         startRefreshTimer();
     }
 
     private void buildUi() {
-        // Title + FPS row
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(true);
+        top.setBackground(new Color(30, 34, 42));
+        top.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(LINE, 1, true),
+                new EmptyBorder(10, 12, 10, 12)
+        ));
+
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        titleLabel.setForeground(TEXT);
 
         fpsLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        fpsLabel.setForeground(new Color(200, 200, 200));
-        fpsLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        fpsLabel.setForeground(MUTED);
 
-    JPanel top = new JPanel(new BorderLayout());
-    // distinct top area color
-    top.setOpaque(true);
-    top.setBackground(new Color(35, 38, 45));
         top.add(titleLabel, BorderLayout.WEST);
         top.add(fpsLabel, BorderLayout.EAST);
         add(top, BorderLayout.NORTH);
 
-        // center content with titled sections for clarity
         JPanel center = new JPanel();
         center.setOpaque(false);
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
 
-        // Player info section
-    JPanel playerPanel = new JPanel();
-    playerPanel.setLayout(new BoxLayout(playerPanel, BoxLayout.Y_AXIS));
-    // blue-ish player section
-    playerPanel.setOpaque(true);
-    playerPanel.setBackground(new Color(38, 56, 92));
-    playerPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(70, 70, 70)), "Player"));
-        playerNameLabel.setForeground(Color.WHITE);
-        playerIdLabel.setForeground(Color.WHITE);
-        matchStatusLabel.setForeground(Color.WHITE);
-        playerNameLabel.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
-        playerIdLabel.setBorder(BorderFactory.createEmptyBorder(0, 6, 4, 6));
-        matchStatusLabel.setBorder(BorderFactory.createEmptyBorder(0, 6, 6, 6));
+        JPanel playerPanel = createCard("Player");
+        playerPanel.setLayout(new BoxLayout(playerPanel, BoxLayout.Y_AXIS));
+
+        styleInfoLabel(playerNameLabel, 16, true);
+        styleInfoLabel(playerIdLabel, 15, false);
+        styleInfoLabel(matchStatusLabel, 15, false);
+
         playerPanel.add(playerNameLabel);
+        playerPanel.add(Box.createVerticalStrut(4));
         playerPanel.add(playerIdLabel);
+        playerPanel.add(Box.createVerticalStrut(2));
         playerPanel.add(matchStatusLabel);
+
         center.add(playerPanel);
+        center.add(Box.createVerticalStrut(10));
 
-        center.add(Box.createVerticalStrut(8));
-
-        // Controls (small note)
-        JLabel controlsLabel = new JLabel("Controls: Move W/A/S/D  Freeze: Space/F");
-        controlsLabel.setForeground(new Color(200, 200, 200));
+        JLabel controlsLabel = new JLabel("Move: W/A/S/D   Freeze: Space/F");
+        controlsLabel.setForeground(MUTED);
         controlsLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        controlsLabel.setBorder(BorderFactory.createEmptyBorder(4, 6, 6, 6));
+        controlsLabel.setBorder(new EmptyBorder(0, 4, 4, 4));
+        controlsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         center.add(controlsLabel);
-
-    // Match timer section (circular)
-    JPanel timePanel = new JPanel(new GridBagLayout());
-    // red-ish time section
-    timePanel.setOpaque(true);
-    timePanel.setBackground(new Color(92, 46, 46));
-    timePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(70, 70, 70)), "Match Time"));
-    circularTimer.setPreferredSize(new Dimension(140, 140));
-    timePanel.setLayout(new BorderLayout());
-    JPanel timerWrap = new JPanel();
-    timerWrap.setOpaque(false);
-    timerWrap.setLayout(new BoxLayout(timerWrap, BoxLayout.Y_AXIS));
-    circularTimer.setAlignmentX(Component.CENTER_ALIGNMENT);
-    timerWrap.add(Box.createVerticalStrut(6));
-    timerWrap.add(circularTimer);
-    timerWrap.add(Box.createVerticalStrut(8));
-        // Removed numeric timer label
-    timerWrap.add(Box.createVerticalStrut(6));
-    timePanel.add(timerWrap, BorderLayout.CENTER);
-    center.add(timePanel);
-    timePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         center.add(Box.createVerticalStrut(8));
 
-        // Scoreboard section
-        scoreboardList.setForeground(Color.WHITE);
-        scoreboardList.setBackground(new Color(40, 40, 40));
-        scoreboardList.setVisibleRowCount(8);
+        JPanel timePanel = createCard("Match Time");
+        timePanel.setLayout(new BorderLayout());
+        circularTimer.setPreferredSize(new Dimension(150, 150));
+
+        JPanel timerWrap = new JPanel();
+        timerWrap.setOpaque(false);
+        timerWrap.setLayout(new BoxLayout(timerWrap, BoxLayout.Y_AXIS));
+        circularTimer.setAlignmentX(Component.CENTER_ALIGNMENT);
+        timerWrap.add(Box.createVerticalStrut(6));
+        timerWrap.add(circularTimer);
+        timerWrap.add(Box.createVerticalStrut(8));
+        timePanel.add(timerWrap, BorderLayout.CENTER);
+
+        center.add(timePanel);
+        center.add(Box.createVerticalStrut(10));
+
+        scoreboardList.setForeground(TEXT);
+        scoreboardList.setBackground(CARD_ALT);
+        scoreboardList.setSelectionBackground(new Color(70, 75, 90));
+        scoreboardList.setSelectionForeground(TEXT);
+        scoreboardList.setFixedCellHeight(22);
+        scoreboardList.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        scoreboardList.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
         scoreboardList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                JLabel c = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
+                c.setBorder(new EmptyBorder(2, 6, 2, 6));
+
+                if (!isSelected) {
+                    c.setBackground(index % 2 == 0 ? CARD_ALT : CARD_BG);
+                    c.setForeground(TEXT);
+                }
+
                 if (value instanceof String s) {
                     String localPrefix = "#" + clientState.getLocalPlayerId();
                     if (s.startsWith(localPrefix)) {
-                        c.setBackground(new Color(80, 80, 140));
+                        c.setBackground(LOCAL_HIGHLIGHT);
                         c.setForeground(Color.WHITE);
                         c.setFont(c.getFont().deriveFont(Font.BOLD));
                     }
                 }
+
                 return c;
             }
         });
-        JScrollPane scroller = new JScrollPane(scoreboardList);
-        scroller.setPreferredSize(new Dimension(260, 180));
-    JPanel scorePanel = new JPanel(new BorderLayout());
-    // green-ish scoreboard section
-    scorePanel.setOpaque(true);
-    scorePanel.setBackground(new Color(46, 92, 60));
-    scorePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(70, 70, 70)), "Scoreboard"));
-    scroller.getViewport().setBackground(new Color(46, 92, 60));
-    scorePanel.add(scroller, BorderLayout.CENTER);
+
+        JScrollPane scoreScroll = new JScrollPane(scoreboardList);
+        scoreScroll.setPreferredSize(new Dimension(275, 180));
+        scoreScroll.setBorder(BorderFactory.createEmptyBorder());
+        scoreScroll.getViewport().setBackground(CARD_ALT);
+
+        JPanel scorePanel = createCard("Scoreboard");
+        scorePanel.setLayout(new BorderLayout());
+        scorePanel.add(scoreScroll, BorderLayout.CENTER);
+
         center.add(scorePanel);
+        center.add(Box.createVerticalStrut(10));
 
-        center.add(Box.createVerticalStrut(8));
-
-        // Server notice
         serverNoticeArea.setEditable(false);
         serverNoticeArea.setLineWrap(true);
         serverNoticeArea.setWrapStyleWord(true);
-        serverNoticeArea.setBackground(new Color(40, 40, 40));
-        serverNoticeArea.setForeground(Color.WHITE);
-        serverNoticeArea.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        serverNoticeArea.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        serverNoticeArea.setBackground(CARD_ALT);
+        serverNoticeArea.setForeground(TEXT);
+        serverNoticeArea.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        serverNoticeArea.setBorder(new EmptyBorder(8, 8, 8, 8));
+
         JScrollPane noticeScroll = new JScrollPane(serverNoticeArea);
-        noticeScroll.setPreferredSize(new Dimension(260, 120));
-    JPanel noticePanel = new JPanel(new BorderLayout());
-    // purple-ish notice section
-    noticePanel.setOpaque(true);
-    noticePanel.setBackground(new Color(80, 50, 100));
-    noticePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(70, 70, 70)), "Server Notice"));
-    noticeScroll.getViewport().setBackground(new Color(80, 50, 100));
-    noticePanel.add(noticeScroll, BorderLayout.CENTER);
+        noticeScroll.setPreferredSize(new Dimension(275, 120));
+        noticeScroll.setBorder(BorderFactory.createEmptyBorder());
+        noticeScroll.getViewport().setBackground(CARD_ALT);
+
+        JPanel noticePanel = createCard("Server Notice");
+        noticePanel.setLayout(new BorderLayout());
+        noticePanel.add(noticeScroll, BorderLayout.CENTER);
+
         center.add(noticePanel);
 
         add(center, BorderLayout.CENTER);
+    }
+
+    private JPanel createCard(String title) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(true);
+        panel.setBackground(CARD_BG);
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        TitledBorder border = BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(LINE, 1, true),
+                title
+        );
+        border.setTitleColor(new Color(220, 225, 235));
+        border.setTitleFont(new Font("SansSerif", Font.BOLD, 13));
+
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                border,
+                new EmptyBorder(8, 8, 8, 8)
+        ));
+
+        return panel;
+    }
+
+    private void styleInfoLabel(JLabel label, int size, boolean bold) {
+        label.setForeground(TEXT);
+        label.setFont(new Font("SansSerif", bold ? Font.BOLD : Font.PLAIN, size));
+        label.setBorder(new EmptyBorder(2, 2, 2, 2));
     }
 
     public void setFps(int fps) {
         SwingUtilities.invokeLater(() -> fpsLabel.setText("FPS: " + fps));
     }
 
-    // Custom circular timer component
     private class CircularTimer extends JComponent {
         private int totalSeconds = 1;
         private int leftSeconds = 0;
@@ -176,9 +217,10 @@ public class HudPanel extends JPanel {
         CircularTimer() {
             setOpaque(false);
             anim = new Timer(80, e -> {
-                // animate pulse for subtle movement
                 pulse += 0.08f;
-                if (pulse > Float.MAX_VALUE - 1) pulse = 0f;
+                if (pulse > Float.MAX_VALUE - 1) {
+                    pulse = 0f;
+                }
                 repaint();
             });
             anim.start();
@@ -199,51 +241,52 @@ public class HudPanel extends JPanel {
 
                 int w = getWidth();
                 int h = getHeight();
-                int size = Math.min(w, h);
+                int size = Math.min(w, h) - 8;
                 int cx = w / 2;
                 int cy = h / 2;
 
                 float pct = Math.max(0f, Math.min(1f, (float) leftSeconds / (float) totalSeconds));
 
-                // background ring
-                int ring = Math.max(8, size / 10);
-                g2.setColor(new Color(0, 0, 0, 120));
-                g2.fillOval(cx - size/2, cy - size/2, size, size);
+                g2.setColor(new Color(0, 0, 0, 90));
+                g2.fillOval(cx - size / 2, cy - size / 2, size, size);
 
-                // compute color gradient (green -> yellow -> red)
+                int thickness = Math.max(12, size / 10);
+
+                Stroke oldStroke = g2.getStroke();
+                g2.setStroke(new BasicStroke(thickness, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                g2.setColor(new Color(70, 78, 90));
+                g2.drawArc(cx - size / 2, cy - size / 2, size, size, 90, -360);
+
                 Color col;
                 if (pct > 0.66f) {
-                    col = blend(new Color(80, 200, 100), new Color(200, 200, 80), (pct - 0.66f) / 0.34f);
+                    col = blend(new Color(90, 210, 110), new Color(220, 210, 90), (pct - 0.66f) / 0.34f);
                 } else if (pct > 0.33f) {
-                    col = blend(new Color(200, 200, 80), new Color(220, 140, 80), (pct - 0.33f) / 0.33f);
+                    col = blend(new Color(220, 210, 90), new Color(235, 150, 90), (pct - 0.33f) / 0.33f);
                 } else {
-                    col = blend(new Color(220, 140, 80), new Color(200, 80, 80), pct / 0.33f);
+                    col = blend(new Color(235, 150, 90), new Color(220, 85, 85), pct / 0.33f);
                 }
 
-                // pulse modulation when low
                 if (leftSeconds <= Math.min(5, totalSeconds / 6)) {
-                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.9f + 0.1f * (float)Math.abs(Math.sin(pulse))));
+                    g2.setComposite(AlphaComposite.getInstance(
+                            AlphaComposite.SRC_OVER,
+                            0.88f + 0.12f * (float) Math.abs(Math.sin(pulse))
+                    ));
                 }
 
-                // draw arc
-                int outer = size - 8;
-                int thickness = Math.max(10, ring);
-                Stroke old = g2.getStroke();
-                g2.setStroke(new BasicStroke(thickness, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g2.setColor(col);
-                int start = 90;
                 int arc = (int) (-360f * pct);
-                g2.drawArc(cx - outer/2, cy - outer/2, outer, outer, start, arc);
-                g2.setStroke(old);
+                g2.setColor(col);
+                g2.drawArc(cx - size / 2, cy - size / 2, size, size, 90, arc);
+                g2.setStroke(oldStroke);
+                g2.setComposite(AlphaComposite.SrcOver);
 
-                // central label
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("SansSerif", Font.BOLD, Math.max(18, size/6)));
+                g2.setColor(TEXT);
+                g2.setFont(new Font("SansSerif", Font.BOLD, Math.max(20, size / 6)));
                 String label = leftSeconds + "s";
                 FontMetrics fm = g2.getFontMetrics();
                 int tw = fm.stringWidth(label);
                 int th = fm.getAscent();
-                g2.drawString(label, cx - tw/2, cy + th/3);
+                g2.drawString(label, cx - tw / 2, cy + th / 3);
 
             } finally {
                 g2.dispose();
@@ -265,15 +308,14 @@ public class HudPanel extends JPanel {
     }
 
     private void refreshFromState() {
-    SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
             GameSnapshot snapshot = clientState.getLatestSnapshot();
             if (snapshot == null) {
                 playerNameLabel.setText("Player: " + clientState.getLocalPlayerName());
                 playerIdLabel.setText("ID: " + clientState.getLocalPlayerId());
-                matchStatusLabel.setText("Match: waiting");
+                matchStatusLabel.setText("Match: Waiting");
                 scoreboardModel.clear();
                 serverNoticeArea.setText("Waiting for game state...");
-                // numeric label removed; circular timer shows time centrally
                 return;
             }
 
@@ -290,15 +332,14 @@ public class HudPanel extends JPanel {
             }
             matchStatusLabel.setText("Match: " + matchStatus);
 
-            // match timer
             int total = Math.max(1, Constants.MATCH_DURATION_SECONDS);
             int left = Math.max(0, snapshot.getTimeLeftSeconds());
             circularTimer.setTime(total, left);
 
-            // scoreboard
             List<PlayerState> players = new ArrayList<>(snapshot.getPlayers());
             players.sort(Comparator.comparingInt(PlayerState::getScore).reversed()
                     .thenComparingInt(PlayerState::getPlayerId));
+
             scoreboardModel.clear();
             for (PlayerState p : players) {
                 String label = String.format("#%d %-12s %4d", p.getPlayerId(), p.getPlayerName(), p.getScore());

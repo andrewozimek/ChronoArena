@@ -45,6 +45,17 @@ public class GameClient {
         this.clientState.setLocalPlayerName(playerName);
     }
 
+    public GameClient(String serverHost, int serverTcpPort, int serverUdpPort, String playerName, int localUdpPort) {
+        this.serverHost = serverHost;
+        this.serverTcpPort = serverTcpPort;
+        this.serverUdpPort = serverUdpPort;
+        this.playerName = playerName;
+        this.localUdpPort = localUdpPort;
+
+        this.clientState = new ClientState();
+        this.clientState.setLocalPlayerName(playerName);
+    }
+
     public void connect() throws Exception {
         InetAddress serverAddress = InetAddress.getByName(serverHost);
 
@@ -63,7 +74,6 @@ public class GameClient {
         tcpListenerThread.start();
 
         sendJoinRequest();
-
         waitForJoinResponse();
     }
 
