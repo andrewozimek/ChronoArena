@@ -16,8 +16,7 @@ public class GameFrame extends JFrame {
     public GameFrame(GameClient gameClient) {
         this.gameClient = gameClient;
         this.gamePanel = new GamePanel(gameClient.getClientState());
-        this.hudPanel = new HudPanel(gameClient.getClientState());
-
+        this.hudPanel = new HudPanel(gameClient.getClientState(), secs -> gameClient.sendVote(secs));
         setTitle("ChronoArena");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);

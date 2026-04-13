@@ -4,6 +4,7 @@ import common.Constants;
 import common.GameSnapshot;
 import common.ItemState;
 import common.ItemType;
+import common.MatchPhase;
 import common.PlayerActionType;
 import common.PlayerState;
 import common.Position;
@@ -13,6 +14,7 @@ import common.ZoneStateModel;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,17 +27,21 @@ public class GameStateManager {
 
     private final SpawnManager spawnManager;
 
+    private volatile MatchPhase phase = MatchPhase.WAITING;
     private volatile long matchStartTimeMs;
-    private volatile boolean matchRunning;
+    private volatile long lobbyStartTimeMs;
+    private volatile int matchDurationSeconds = Constants.MATCH_DURATION_SECONDS;
     private volatile boolean matchEnded;
     private volatile String serverNotice;
+
+    private final Map<Integer, Integer> playerVotes = new ConcurrentHashMap<>();
 
     private volatile long lastItemSpawnTimeMs;
 
     public GameStateManager(SpawnManager spawnManager) {
         this.spawnManager = spawnManager;
         this.matchStartTimeMs = 0L;
-        this.matchRunning = false;
+        this.lobbyStartTimeMs = 0L;
         this.matchEnded = false;
         this.serverNotice = "Waiting for players...";
         this.lastItemSpawnTimeMs = 0L;
@@ -51,15 +57,67 @@ public class GameStateManager {
         zones.put(zoneB.getZoneId(), zoneB);
     }
 
-    public synchronized void startMatch() {
-        if (matchRunning) {
+    public synchronized void startLobby() {
+        if (phase != MatchPhase.WAITING) {
             return;
         }
+        this.phase = MatchPhase.LOBBY;
+        this.lobbyStartTimeMs = System.currentTimeMillis();
+        this.playerVotes.clear();
+        this.serverNotice = "Lobby open — vote for match duration!";
+    }
+
+    public synchronized void tickLobby() {
+        if (phase != MatchPhase.LOBBY) {
+            return;
+        }
+        long elapsed = (System.currentTimeMillis() - lobbyStartTimeMs) / 1000L;
+        if (elapsed >= Constants.LOBBY_DURATION_SECONDS) {
+            resolveLobby();
+        }
+    }
+
+    private void resolveLobby() {
+        Map<Integer, Integer> tally = new HashMap<>();
+        for (int duration : playerVotes.values()) {
+            tally.merge(duration, 1, Integer::sum);
+        }
+
+        if (tally.isEmpty()) {
+            matchDurationSeconds = Constants.MATCH_DURATION_SECONDS;
+        } else {
+            matchDurationSeconds = tally.entrySet().stream()
+                    .max(Map.Entry.<Integer, Integer>comparingByValue()
+                            .thenComparing(Map.Entry.comparingByKey()))
+                    .get()
+                    .getKey();
+        }
+
+        startMatch();
+    }
+
+    public synchronized void startMatch() {
+        if (phase == MatchPhase.RUNNING) {
+            return;
+        }
+        this.phase = MatchPhase.RUNNING;
         this.matchStartTimeMs = System.currentTimeMillis();
-        this.matchRunning = true;
         this.matchEnded = false;
-        this.serverNotice = "Match started!";
+        this.serverNotice = "Match started! Duration: " + matchDurationSeconds + "s";
         this.lastItemSpawnTimeMs = System.currentTimeMillis();
+    }
+
+    public void submitVote(int playerId, int durationSeconds) {
+        // only accept votes during the lobby; one vote per player (last write wins)
+        if (phase != MatchPhase.LOBBY) {
+            return;
+        }
+        playerVotes.put(playerId, durationSeconds);
+        System.out.println("Player " + playerId + " voted for " + durationSeconds + "s");
+    }
+
+    public MatchPhase getPhase() {
+        return phase;
     }
 
     public synchronized void addPlayer(int playerId, String playerName, Position spawn) {
@@ -138,7 +196,7 @@ public class GameStateManager {
     }
 
     public synchronized void processActions(List<QueuedPlayerAction> actions, KillSwitchManager killSwitchManager) {
-        if (!matchRunning || matchEnded) {
+        if (phase != MatchPhase.RUNNING || matchEnded) {
             return;
         }
 
@@ -395,8 +453,8 @@ public class GameStateManager {
 
     private void endMatchIfExpired(long now) {
         long elapsedSeconds = (now - matchStartTimeMs) / 1000L;
-        if (elapsedSeconds >= Constants.MATCH_DURATION_SECONDS) {
-            matchRunning = false;
+        if (elapsedSeconds >= matchDurationSeconds) {
+            phase = MatchPhase.ENDING;
             matchEnded = true;
 
             PlayerState winner = players.values()
@@ -418,19 +476,33 @@ public class GameStateManager {
         long now = System.currentTimeMillis();
 
         snapshot.setServerTimeMs(now);
-        snapshot.setMatchRunning(matchRunning);
-        snapshot.setMatchEnded(matchEnded);
+        snapshot.setMatchPhase(phase);
+        snapshot.setMatchRunning(phase == MatchPhase.RUNNING);
+        snapshot.setMatchEnded(phase == MatchPhase.ENDING);
         snapshot.setServerNotice(serverNotice);
 
-        int timeLeft = Constants.MATCH_DURATION_SECONDS;
-        if (matchRunning) {
-            long elapsed = (now - matchStartTimeMs) / 1000L;
-            timeLeft = Math.max(0, Constants.MATCH_DURATION_SECONDS - (int) elapsed);
-        } else if (matchEnded) {
-            timeLeft = 0;
-        }
+        if (phase == MatchPhase.LOBBY) {
+            long elapsed = (now - lobbyStartTimeMs) / 1000L;
+            int lobbyLeft = Math.max(0, Constants.LOBBY_DURATION_SECONDS - (int) elapsed);
+            snapshot.setTimeLeftSeconds(lobbyLeft);
 
-        snapshot.setTimeLeftSeconds(timeLeft);
+            // build vote counts for display: duration -> number of votes
+            Map<Integer, Integer> tally = new HashMap<>();
+            for (int duration : playerVotes.values()) {
+                tally.merge(duration, 1, Integer::sum);
+            }
+            snapshot.setVoteCounts(tally);
+        } else {
+            int timeLeft = matchDurationSeconds;
+            if (phase == MatchPhase.RUNNING) {
+                long elapsed = (now - matchStartTimeMs) / 1000L;
+                timeLeft = Math.max(0, matchDurationSeconds - (int) elapsed);
+            } else if (phase == MatchPhase.ENDING) {
+                timeLeft = 0;
+            }
+            snapshot.setTimeLeftSeconds(timeLeft);
+            snapshot.setVoteCounts(null);
+        }
 
         List<PlayerState> playerCopies = new ArrayList<>();
         Integer winnerId = null;

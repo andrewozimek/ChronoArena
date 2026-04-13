@@ -12,6 +12,7 @@ import javax.swing.*;
 public class HudPanel extends JPanel {
 
     private final ClientState clientState;
+    private final VoteSubmitter voteSubmitter;
 
     // UI components
     private final JLabel titleLabel = new JLabel("ChronoArena");
@@ -24,8 +25,15 @@ public class HudPanel extends JPanel {
     private final JList<String> scoreboardList = new JList<>(scoreboardModel);
     private final JTextArea serverNoticeArea = new JTextArea();
 
-    public HudPanel(ClientState clientState) {
+    // Lobby vote panel
+    private JPanel lobbyVotePanel;
+    private JLabel lobbyCountdownLabel;
+    private final JButton[] voteButtons = new JButton[4];
+    private volatile int playerVoteSeconds = -1;
+
+    public HudPanel(ClientState clientState, VoteSubmitter voteSubmitter) {
         this.clientState = clientState;
+        this.voteSubmitter = voteSubmitter;
         setPreferredSize(new Dimension(300, 700));
         setBackground(new Color(30, 30, 30));
         setForeground(Color.WHITE);
@@ -130,7 +138,6 @@ public class HudPanel extends JPanel {
         JScrollPane scroller = new JScrollPane(scoreboardList);
         scroller.setPreferredSize(new Dimension(260, 180));
     JPanel scorePanel = new JPanel(new BorderLayout());
-    // green-ish scoreboard section
     scorePanel.setOpaque(true);
     scorePanel.setBackground(new Color(46, 92, 60));
     scorePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(70, 70, 70)), "Scoreboard"));
@@ -159,7 +166,78 @@ public class HudPanel extends JPanel {
     noticePanel.add(noticeScroll, BorderLayout.CENTER);
         center.add(noticePanel);
 
+        // Lobby vote panel (hidden by default, shown during LOBBY phase)
+        lobbyVotePanel = buildLobbyVotePanel();
+        center.add(Box.createVerticalStrut(8));
+        center.add(lobbyVotePanel);
+
         add(center, BorderLayout.CENTER);
+    }
+
+    private JPanel buildLobbyVotePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(true);
+        panel.setBackground(new Color(55, 45, 80));
+        panel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(120, 90, 180)), "Vote: Match Duration"));
+        panel.setVisible(false);
+
+        lobbyCountdownLabel = new JLabel("Lobby closes in: --s", SwingConstants.CENTER);
+        lobbyCountdownLabel.setForeground(new Color(200, 180, 255));
+        lobbyCountdownLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        lobbyCountdownLabel.setBorder(BorderFactory.createEmptyBorder(4, 6, 6, 6));
+        panel.add(lobbyCountdownLabel, BorderLayout.NORTH);
+
+        int[] durations = {30, 60, 120, 300};
+        String[] labels  = {"30 sec", "1 min", "2 min", "5 min"};
+
+        JPanel buttonRow = new JPanel(new GridLayout(2, 2, 6, 6));
+        buttonRow.setOpaque(false);
+        buttonRow.setBorder(BorderFactory.createEmptyBorder(0, 8, 8, 8));
+
+        for (int i = 0; i < 4; i++) {
+            int durationSecs = durations[i];
+            JButton btn = new JButton(labels[i]);
+            btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+            btn.setForeground(Color.WHITE);
+            btn.setBackground(new Color(80, 60, 120));
+            btn.setFocusPainted(false);
+            btn.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(120, 90, 180), 1),
+                    BorderFactory.createEmptyBorder(6, 4, 6, 4)));
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            btn.addActionListener(e -> {
+                if (voteSubmitter != null) {
+                    voteSubmitter.submitVote(durationSecs);
+                }
+                playerVoteSeconds = durationSecs;
+                updateVoteButtonStyles();
+            });
+
+            voteButtons[i] = btn;
+            buttonRow.add(btn);
+        }
+
+        panel.add(buttonRow, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /** Highlights the selected vote button and dims the others. */
+    private void updateVoteButtonStyles() {
+        int[] durations = {30, 60, 120, 300};
+        SwingUtilities.invokeLater(() -> {
+            for (int i = 0; i < voteButtons.length; i++) {
+                if (voteButtons[i] == null) continue;
+                boolean chosen = (durations[i] == playerVoteSeconds);
+                voteButtons[i].setBackground(chosen ? new Color(120, 80, 200) : new Color(80, 60, 120));
+                voteButtons[i].setForeground(chosen ? Color.WHITE : new Color(200, 200, 200));
+                voteButtons[i].setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(
+                                chosen ? new Color(180, 140, 255) : new Color(120, 90, 180), chosen ? 2 : 1),
+                        BorderFactory.createEmptyBorder(6, 4, 6, 4)));
+            }
+        });
     }
 
     public void setFps(int fps) {
@@ -273,12 +351,14 @@ public class HudPanel extends JPanel {
                 matchStatusLabel.setText("Match: waiting");
                 scoreboardModel.clear();
                 serverNoticeArea.setText("Waiting for game state...");
-                // numeric label removed; circular timer shows time centrally
+                lobbyVotePanel.setVisible(false);
                 return;
             }
 
             playerNameLabel.setText("Player: " + clientState.getLocalPlayerName());
             playerIdLabel.setText("ID: " + clientState.getLocalPlayerId());
+
+            boolean inLobby = snapshot.isMatchLobby();
 
             String matchStatus;
             if (snapshot.isMatchEnded()) {
@@ -286,11 +366,26 @@ public class HudPanel extends JPanel {
             } else if (snapshot.isMatchRunning()) {
                 matchStatus = "Running";
             } else {
-                matchStatus = "Waiting";
+                matchStatus = "Lobby";
             }
             matchStatusLabel.setText("Match: " + matchStatus);
 
-            // match timer
+            // Show/hide lobby vote panel
+            if (inLobby) {
+                lobbyVotePanel.setVisible(true);
+                int lobbyLeft = snapshot.getTimeLeftSeconds(); // reused field during lobby
+                lobbyCountdownLabel.setText("Lobby closes in: " + Math.max(0, lobbyLeft) + "s");
+                updateVoteButtonStyles();
+                // Reset vote choice if the lobby has just re-opened (e.g. new round)
+            } else {
+                lobbyVotePanel.setVisible(false);
+                if (snapshot.isMatchRunning()) {
+                    // Clear remembered vote so it's fresh next lobby
+                    playerVoteSeconds = -1;
+                }
+            }
+
+            // match timer — only meaningful while running
             int total = Math.max(1, Constants.MATCH_DURATION_SECONDS);
             int left = Math.max(0, snapshot.getTimeLeftSeconds());
             circularTimer.setTime(total, left);

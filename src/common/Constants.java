@@ -8,6 +8,8 @@ public final class Constants {
    public static final int MAP_WIDTH = 1000;
    public static final int MAP_HEIGHT = 700;
 
+   public static final int LOBBY_DURATION_SECONDS = 30;
+
    public static final int PLAYER_SIZE = 28;
    public static final int PLAYER_SPEED = 8;
 
@@ -39,4 +41,6 @@ public final class Constants {
    public static final String MESSAGE_TYPE_GAME_SNAPSHOT = "GAME_SNAPSHOT";
    public static final String MESSAGE_TYPE_SERVER_NOTICE = "SERVER_NOTICE";
    public static final String MESSAGE_TYPE_CLIENT_DISCONNECT = "CLIENT_DISCONNECT";
+   public static final String MESSAGE_TYPE_VOTE_REQUEST = "MESSAGE_TYPE_VOTE_REQUEST";
+
 }

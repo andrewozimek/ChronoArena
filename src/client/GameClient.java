@@ -156,4 +156,16 @@ public class GameClient {
     public UdpSender getUdpSender() {
         return udpSender;
     }
+
+    public void sendVote(int durationSeconds) {
+        if (outputStream == null) return;
+        try {
+            synchronized (outputStream) {
+                outputStream.writeObject(TcpMessage.of(
+                    Constants.MESSAGE_TYPE_VOTE_REQUEST, durationSeconds));
+                outputStream.flush();
+                outputStream.reset();
+            }
+        } catch (Exception ignored) {}
+    }
 }
