@@ -16,7 +16,7 @@ javac -d "$OUT_DIR" \
   $(find "$SRC_CLIENT" "$SRC_COMMON" -name "*.java")
 
 # Copy resources
-cp -r "$SRC_CLIENT/resources" "$OUT_DIR/"
+cp -r "$SRC_CLIENT/resources" "$OUT_DIR/client/"
 
 # Create manifest
 echo "Main-Class: $MAIN_CLASS" > manifest.txt
