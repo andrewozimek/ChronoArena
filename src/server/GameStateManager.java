@@ -57,10 +57,26 @@ public class GameStateManager {
         zones.put(zoneB.getZoneId(), zoneB);
     }
 
+    private int getConnectedPlayerCount() {
+        int count = 0;
+        for (PlayerState player : players.values()) {
+            if (player.isConnected()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public synchronized void startLobby() {
         if (phase != MatchPhase.WAITING) {
             return;
         }
+
+        if (getConnectedPlayerCount() < 2) {
+            serverNotice = "Waiting for another player...";
+            return;
+        }
+
         this.phase = MatchPhase.LOBBY;
         this.lobbyStartTimeMs = System.currentTimeMillis();
         this.playerVotes.clear();
@@ -71,6 +87,15 @@ public class GameStateManager {
         if (phase != MatchPhase.LOBBY) {
             return;
         }
+
+        if (getConnectedPlayerCount() < 2) {
+            phase = MatchPhase.WAITING;
+            lobbyStartTimeMs = 0L;
+            playerVotes.clear();
+            serverNotice = "Waiting for another player...";
+            return;
+        }
+
         long elapsed = (System.currentTimeMillis() - lobbyStartTimeMs) / 1000L;
         if (elapsed >= Constants.LOBBY_DURATION_SECONDS) {
             resolveLobby();
@@ -115,12 +140,7 @@ public class GameStateManager {
         playerVotes.put(playerId, durationSeconds);
         System.out.println("Player " + playerId + " voted for " + durationSeconds + "s");
 
-        int connectedPlayers = 0;
-        for (PlayerState player : players.values()) {
-            if (player.isConnected()) {
-                connectedPlayers++;
-            }
-        }
+        int connectedPlayers = getConnectedPlayerCount();
 
         if (connectedPlayers >= 2 && playerVotes.size() >= connectedPlayers) {
             serverNotice = "All players voted. Starting match...";
@@ -498,7 +518,6 @@ public class GameStateManager {
             int lobbyLeft = Math.max(0, Constants.LOBBY_DURATION_SECONDS - (int) elapsed);
             snapshot.setTimeLeftSeconds(lobbyLeft);
 
-            // build vote counts for display: duration -> number of votes
             Map<Integer, Integer> tally = new HashMap<>();
             for (int duration : playerVotes.values()) {
                 tally.merge(duration, 1, Integer::sum);

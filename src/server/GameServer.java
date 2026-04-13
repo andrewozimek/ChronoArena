@@ -110,7 +110,8 @@ public class GameServer {
         Position spawn = gameStateManager.getSpawnForNewPlayer(playerId - 1);
         gameStateManager.addPlayer(playerId, playerName, spawn);
 
-        if (gameStateManager.getPhase() == MatchPhase.WAITING) {
+        if (gameStateManager.getPhase() == MatchPhase.WAITING
+                && gameStateManager.getPlayerCount() >= 2) {
             gameStateManager.startLobby();
         }
 
